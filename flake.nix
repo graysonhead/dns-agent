@@ -27,6 +27,9 @@
 
         workspaceShell = rustPkgs.workspaceShell {};
 
+        ci = pkgs.rustBuilder.runTests rustPkgs.workspace.cargo2nix {
+        };
+
       in rec {
         packages.dns-agent = (rustPkgs.workspace.dns-agent {}).bin;
         defaultPackage = packages.dns-agent;

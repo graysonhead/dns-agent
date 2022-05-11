@@ -88,7 +88,7 @@ pub fn update_dns(config: Config) {
                 );
                 let ip_address = Ipv4Addr::from_str(&req_body)
                     .expect("Couldn't parse IP from external discovery service");
-                info!("Dixcovered external IPv4 address: {:?}", ip_address);
+                info!("Discovered external IPv4 address: {:?}", ip_address);
                 Some(ip_address)
             }
             None => None,
