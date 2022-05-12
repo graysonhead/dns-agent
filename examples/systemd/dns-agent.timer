@@ -1,0 +1,10 @@
+[Unit]
+Description=Update IP Hourly
+
+[Timer]
+OnCalendar=0/1:00:00
+Persistent=true
+Unit=dns-agent.service
+
+[Install]
+WantedBy=timers.target

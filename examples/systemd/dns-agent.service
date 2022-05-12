@@ -1,0 +1,6 @@
+[Unit]
+Description=DigitalOcean DNS Update
+
+[Service]
+Type=simple
+ExecStart=dns-agent -c /etc/dns-agent.toml
