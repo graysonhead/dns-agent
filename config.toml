@@ -1,0 +1,36 @@
+[settings]
+external_ipv4_check_url = "https://api.ipify.org/?format=text"
+
+[[domains]]
+name = "i.graysonhead.net"
+
+    [domains.digital_ocean_backend]
+    api_key = "484e960a72e4d3059d44ee49b271542e2725cbb717bb66decc7d9ea8f986b9c2"
+
+    [[domains.records]]
+    name = "gdesktop"
+    record_type = "A"
+    interface = "eno1"
+
+    [[domains.records]]
+    name = "gdesktop"
+    record_type = "AAAA"
+    interface = "eno1"
+
+[[domains]]
+name = "graysonhead.net"
+
+    [domains.digital_ocean_backend]
+    api_key = "484e960a72e4d3059d44ee49b271542e2725cbb717bb66decc7d9ea8f986b9c2"
+
+    [[domains.records]]
+    name = "gdesktop"
+    record_type = "A"
+    interface = "external"
+
+    [[domains.records]]
+    name = "gdesktop"
+    record_type = "AAAA"
+    interface = "eno1"
+
+

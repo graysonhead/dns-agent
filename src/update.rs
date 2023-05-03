@@ -1,5 +1,6 @@
-use crate::config::{Config, DomainConfig};
+use crate::config::{Config, ParsedDomainConfig};
 use crate::dns_providers::{self, DigitalOceanBackend, DnsBackendError};
+use default_net::get_default_interface;
 use get_if_addrs::{get_if_addrs, Interface};
 use reqwest;
 use std::net::{IpAddr, Ipv4Addr};
@@ -14,8 +15,8 @@ pub enum SystemAddress {
 impl From<SystemAddress> for IpAddr {
     fn from(addr: SystemAddress) -> IpAddr {
         match addr {
-            SystemAddress::V4(addr) => IpAddr::from(addr.address),
-            SystemAddress::V6(addr) => IpAddr::from(addr.address),
+            SystemAddress::V4(addr) => addr.address,
+            SystemAddress::V6(addr) => addr.address,
         }
     }
 }
@@ -52,7 +53,6 @@ impl SystemAddresses {
             .collect();
 
         let ipv6_addr: Vec<SystemV6Address> = interfaces
-            .clone()
             .into_iter()
             .filter(|x| x.addr.ip().is_ipv6())
             .map(|x| SystemV6Address {
@@ -77,6 +77,11 @@ impl SystemAddresses {
 
 pub fn update_dns(config: Config) {
     let local_interfaces = get_if_addrs().expect("Could not fetch local interface IPs");
+
+    let default_interface = get_default_interface().expect("Failed to get default interface");
+
+    info!("Detected default interface as {}", default_interface.name);
+
     let external_ipv4: Option<Ipv4Addr> = match config.settings {
         Some(settings) => match settings.external_ipv4_check_url {
             Some(url) => {
@@ -95,26 +100,27 @@ pub fn update_dns(config: Config) {
         },
         None => None,
     };
+
     let system_interfaces = SystemAddresses::new(local_interfaces, external_ipv4);
     info!("System IPs: {:?}", system_interfaces);
 
     for domain in config.domains {
         info!("Running for domain {}", domain.name);
-        update_domain_dns(domain, &system_interfaces).unwrap();
+        let parsed_domain = domain.parse_config(&default_interface);
+        update_domain_dns(parsed_domain, &system_interfaces).unwrap();
     }
 }
 
 fn update_domain_dns(
-    domain: DomainConfig,
+    domain: ParsedDomainConfig,
     system_interfaces: &SystemAddresses,
 ) -> Result<(), DnsBackendError> {
     info!("Starting update of {}", domain.name);
     if let Some(digitalocean_config) = domain.digital_ocean_backend {
         let backend = DigitalOceanBackend::new(digitalocean_config.api_key, domain.name)
             .expect("Failed to setup digitalocean client");
-        if let Some(desired_records) = domain.records {
-            dns_providers::update_records(backend, desired_records, &system_interfaces)?;
-        }
+        let desired_records = domain.records;
+        dns_providers::update_records(backend, desired_records, system_interfaces)?;
 
         Ok(())
     } else {

@@ -1,0 +1,16 @@
+[[domains]]
+name = "testdomain.net"
+
+[[domains.records]]
+name = "host_name"
+record_type = "A"
+
+[[domains.records]]
+name = "host_name"
+record_type = "AAAA"
+
+[domains.digital_ocean_backend]
+api_key = "<api_key_here>"
+
+[settings]
+external_ipv4_check_url = "https://api.ipify.org/?format=text"

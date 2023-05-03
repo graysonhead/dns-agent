@@ -1,4 +1,4 @@
-use crate::config::Record;
+use crate::config::{ParsedRecord};
 use crate::update::{SystemAddress, SystemAddresses, SystemV4Address, SystemV6Address};
 use digitalocean::api::{Domain, DomainRecord};
 use digitalocean::request::Executable;
@@ -23,12 +23,6 @@ impl fmt::Display for DnsBackendError {
         write!(f, "{}", self.message)
     }
 }
-
-// pub trait DnsBackend {
-//     fn get_zone(self, zone: String) -> Result<DnsZoneRecords, DnsBackendError>;
-//     fn create_record(record: DnsRecord) -> Result<(), DnsBackendError>;
-//     // fn update_record(record: DnsRecord) -> Result<(), DnsBackendError>;
-// }
 
 pub struct DigitalOceanBackend {
     client: DigitalOcean,
@@ -94,7 +88,7 @@ impl DigitalOceanBackend {
 
 pub fn update_records(
     backend: DigitalOceanBackend,
-    desired_records: Vec<Record>,
+    desired_records: Vec<ParsedRecord>,
     system_interfaces: &SystemAddresses,
 ) -> Result<(), DnsBackendError> {
     let current_records = backend.get_zone()?;
@@ -105,7 +99,7 @@ pub fn update_records(
             .into_iter()
             .filter(|x| x.name() == &desired_record.name && x.kind() == &desired_record.record_type)
             .collect();
-        let interface = find_matching_interface(&desired_record, &system_interfaces)?;
+        let interface = find_matching_interface(&desired_record, system_interfaces)?;
         if matching_records.len() > 1 {
             warn!(
                 "Multiple records found for {}.{}, not updating",
@@ -154,7 +148,7 @@ pub fn update_records(
 }
 
 pub fn find_matching_interface(
-    record: &Record,
+    record: &ParsedRecord,
     system_interfaces: &SystemAddresses,
 ) -> Result<SystemAddress, DnsBackendError> {
     let v4_addresses = system_interfaces.v4_addresses.clone();
@@ -207,7 +201,7 @@ mod tests {
 
     #[test]
     fn test_find_matching_interface_match_v4() {
-        let record = Record {
+        let record = ParsedRecord {
             name: "test_record".to_string(),
             record_type: "A".to_string(),
             interface: "eth0".to_string(),
@@ -227,7 +221,7 @@ mod tests {
 
     #[test]
     fn test_find_matching_interface_match_v6() {
-        let record = Record {
+        let record = ParsedRecord {
             name: "test_record".to_string(),
             record_type: "AAAA".to_string(),
             interface: "eth0".to_string(),
@@ -246,7 +240,7 @@ mod tests {
 
     #[test]
     fn test_find_matching_interface_no_match() {
-        let record = Record {
+        let record = ParsedRecord {
             name: "test_record".to_string(),
             record_type: "A".to_string(),
             interface: "eth0".to_string(),
@@ -256,7 +250,7 @@ mod tests {
             address: IpAddr::from(std::net::Ipv4Addr::new(10, 1, 1, 1)),
         };
         let interfaces = SystemAddresses {
-            v4_addresses: vec![interface.clone()],
+            v4_addresses: vec![interface],
             v6_addresses: Vec::new(),
         };
 

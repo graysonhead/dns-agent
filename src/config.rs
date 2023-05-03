@@ -1,3 +1,4 @@
+use default_net::Interface;
 use serde_derive::{Deserialize, Serialize};
 
 pub trait BackendConfig {}
@@ -17,10 +18,42 @@ pub struct Settings {
 pub struct DomainConfig {
     pub name: String,
     pub digital_ocean_backend: Option<DigitalOceanBackendConfig>,
-    pub records: Option<Vec<Record>>,
+    pub records: Vec<Record>,
 }
 
 #[derive(Serialize, Deserialize)]
+pub struct ParsedDomainConfig {
+    pub name: String,
+    pub digital_ocean_backend: Option<DigitalOceanBackendConfig>,
+    pub records: Vec<ParsedRecord>,
+}
+
+impl DomainConfig {
+    pub fn parse_config(&self, default_interface: &Interface) -> ParsedDomainConfig {
+        let parsed_records = self
+            .records
+            .iter()
+            .map(|conf_record| {
+                let interface: String = conf_record
+                    .interface
+                    .clone()
+                    .unwrap_or(default_interface.name.clone());
+                ParsedRecord {
+                    name: conf_record.name.clone(),
+                    record_type: conf_record.record_type.clone(),
+                    interface,
+                }
+            })
+            .collect();
+        ParsedDomainConfig {
+            name: self.name.clone(),
+            digital_ocean_backend: self.digital_ocean_backend.clone(),
+            records: parsed_records,
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize, Clone)]
 pub struct DigitalOceanBackendConfig {
     pub api_key: String,
 }
@@ -29,6 +62,13 @@ impl BackendConfig for DigitalOceanBackendConfig {}
 
 #[derive(Serialize, Deserialize)]
 pub struct Record {
+    pub name: String,
+    pub record_type: String,
+    pub interface: Option<String>,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct ParsedRecord {
     pub name: String,
     pub record_type: String,
     pub interface: String,
@@ -94,9 +134,9 @@ mod tests {
         .unwrap();
         assert_eq!(config.domains.len(), 1);
         assert_eq!(config.domains[0].name, "example.com".to_string());
-        let record = &config.domains[0].records.as_ref().unwrap()[0];
+        let record = &config.domains[0].records[0];
         assert_eq!(record.name, "testhost");
         assert_eq!(record.record_type, "A");
-        assert_eq!(record.interface, "eth0");
+        assert_eq!(record.interface, Some("eth0".to_string()));
     }
 }
