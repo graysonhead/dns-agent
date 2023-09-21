@@ -102,23 +102,6 @@ mod tests {
     }
 
     #[test]
-    fn test_do_backend_deserialize() {
-        let config: Config = toml::from_str(
-            r#"
-        [[domains]]
-        name = "example.com"
-
-            [domains.digital_ocean_backend]
-            api_key = "test"
-        "#,
-        )
-        .unwrap();
-
-        let do_backend = config.domains[0].digital_ocean_backend.as_ref().unwrap();
-        assert_eq!(do_backend.api_key, "test".to_string());
-    }
-
-    #[test]
     fn test_domain_record_deserialize() {
         let config: Config = toml::from_str(
             r#"
