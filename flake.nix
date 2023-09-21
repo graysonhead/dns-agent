@@ -27,6 +27,10 @@
       in
       rec {
         defaultPackage = packages.dns-agent;
+        nixosModules = rec {
+          dns-agent = import ./module.nix;
+          default = dns-agent;
+        };
         packages =
           {
             dns-agent = naersk'.buildPackage {
@@ -37,7 +41,7 @@
           };
 
 
-        devShell = pkgs.mkShell {
+        devShells.default = pkgs.mkShell {
           nativeBuildInputs = with pkgs;
             [
               nixpkgs-fmt
