@@ -1,5 +1,7 @@
 use crate::config::{Config, ParsedDomainConfig};
-use crate::dns_providers::{self, DigitalOceanBackend, DnsBackendError};
+use crate::dns_providers::{update_records, DnsBackendError};
+use crate::providers::cloudflare::CloudFlareBackend;
+use crate::providers::digitalocean::DigitalOceanBackend;
 use default_net::get_default_interface;
 use get_if_addrs::{get_if_addrs, Interface};
 use reqwest;
@@ -116,11 +118,16 @@ fn update_domain_dns(
     system_interfaces: &SystemAddresses,
 ) -> Result<(), DnsBackendError> {
     info!("Starting update of {}", domain.name);
+    let desired_records = domain.records;
     if let Some(digitalocean_config) = domain.digital_ocean_backend {
         let backend = DigitalOceanBackend::new(digitalocean_config.api_key, domain.name)
             .expect("Failed to setup digitalocean client");
-        let desired_records = domain.records;
-        dns_providers::update_records(backend, desired_records, system_interfaces)?;
+        update_records(backend, desired_records, system_interfaces)?;
+
+        Ok(())
+    } else if let Some(cloudflare_config) = domain.cloudflare_backend {
+        let backend = CloudFlareBackend::from(cloudflare_config);
+        update_records(backend, desired_records, system_interfaces)?;
 
         Ok(())
     } else {

@@ -4,3 +4,4 @@ extern crate log;
 pub mod config;
 pub mod dns_providers;
 pub mod update;
+pub mod providers;
