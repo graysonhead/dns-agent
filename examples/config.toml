@@ -1,37 +1,54 @@
 [settings]
 external_ipv4_check_url = "https://api.ipify.org/?format=text"
 
+
+[[domains]]
+name = "cloudflare_example.net"
+
+[domains.cloudflare_backend]
+api_token = "<token>"
+zone_identifier = "<zone_identifier>"
+zone = "cloudflare_example.net"
+
+[[domains.records]]
+name = "testhostname"
+record_type = "A"
+interface = "enp7s0"
+
+[[domains.records]]
+name = "testhostname"
+record_type = "AAAA"
+interface = "enp7s0"
+
 [[domains]]
 name = "internal.example.com"
 
-    [domains.digital_ocean_backend]
-    api_key = "<key_here>"
+[domains.digital_ocean_backend]
+api_key = "<key_here>"
 
-    [[domains.records]]
-    name = "hostname"
-    record_type = "A"
-    interface = "eth0"
+[[domains.records]]
+name = "hostname"
+record_type = "A"
+interface = "eth0"
 
-    [[domains.records]]
-    name = "hostname"
-    record_type = "AAAA"
-    interface = "eth0"
+[[domains.records]]
+name = "hostname"
+record_type = "AAAA"
+interface = "eth0"
 
 [[domains]]
 name = "example.com"
 
-    [domains.digital_ocean_backend]
-    api_key = "<key_here>"
+[domains.digital_ocean_backend]
+api_key = "<key_here>"
 
-    [[domains.records]]
-    name = "hostname"
-    record_type = "A"
-    # External is a special interface name that can only be used when external_ipv4_check_url is specified
-    interface = "external"
+[[domains.records]]
+name = "hostname"
+record_type = "A"
+# External is a special interface name that can only be used when external_ipv4_check_url is specified
+interface = "external"
 
-    [[domains.records]]
-    name = "hostname"
-    record_type = "AAAA"
-    interface = "eth0"
-
-
+[[domains.records]]
+name = "hostname"
+record_type = "AAAA"
+interface = "eth0"
