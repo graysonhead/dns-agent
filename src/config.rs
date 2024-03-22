@@ -1,3 +1,7 @@
+use crate::{
+    dns_providers::DnsRecordType,
+    providers::{cloudflare::CloudFlareBackendConfig, digitalocean::DigitalOceanBackendConfig},
+};
 use default_net::Interface;
 use serde_derive::{Deserialize, Serialize};
 
@@ -18,6 +22,7 @@ pub struct Settings {
 pub struct DomainConfig {
     pub name: String,
     pub digital_ocean_backend: Option<DigitalOceanBackendConfig>,
+    pub cloudflare_backend: Option<CloudFlareBackendConfig>,
     pub records: Vec<Record>,
 }
 
@@ -25,6 +30,7 @@ pub struct DomainConfig {
 pub struct ParsedDomainConfig {
     pub name: String,
     pub digital_ocean_backend: Option<DigitalOceanBackendConfig>,
+    pub cloudflare_backend: Option<CloudFlareBackendConfig>,
     pub records: Vec<ParsedRecord>,
 }
 
@@ -39,8 +45,8 @@ impl DomainConfig {
                     .clone()
                     .unwrap_or(default_interface.name.clone());
                 ParsedRecord {
-                    name: conf_record.name.clone(),
-                    record_type: conf_record.record_type.clone(),
+                    name: conf_record.name.to_string(),
+                    record_type: conf_record.record_type.as_str().into(),
                     interface,
                 }
             })
@@ -48,17 +54,11 @@ impl DomainConfig {
         ParsedDomainConfig {
             name: self.name.clone(),
             digital_ocean_backend: self.digital_ocean_backend.clone(),
+            cloudflare_backend: self.cloudflare_backend.clone(),
             records: parsed_records,
         }
     }
 }
-
-#[derive(Serialize, Deserialize, Clone)]
-pub struct DigitalOceanBackendConfig {
-    pub api_key: String,
-}
-
-impl BackendConfig for DigitalOceanBackendConfig {}
 
 #[derive(Serialize, Deserialize)]
 pub struct Record {
@@ -67,10 +67,10 @@ pub struct Record {
     pub interface: Option<String>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct ParsedRecord {
     pub name: String,
-    pub record_type: String,
+    pub record_type: DnsRecordType,
     pub interface: String,
 }
 

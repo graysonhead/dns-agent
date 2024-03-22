@@ -1,16 +1,64 @@
-use crate::config::{ParsedRecord};
+use serde::{Deserialize, Serialize};
+
+use crate::config::ParsedRecord;
 use crate::update::{SystemAddress, SystemAddresses, SystemV4Address, SystemV6Address};
-use digitalocean::api::{Domain, DomainRecord};
-use digitalocean::request::Executable;
-use digitalocean::DigitalOcean;
+
 use std::fmt;
 use std::net::IpAddr;
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub enum DnsRecordType {
+    A,
+    AAAA,
+    TXT,
+    NS,
+    SRV,
+    Other,
+}
+
+impl From<&str> for DnsRecordType {
+    fn from(value: &str) -> Self {
+        match value {
+            "A" => DnsRecordType::A,
+            "AAAA" => DnsRecordType::AAAA,
+            "TXT" => DnsRecordType::TXT,
+            "NS" => DnsRecordType::NS,
+            "SRV" => DnsRecordType::SRV,
+            _ => DnsRecordType::Other,
+        }
+    }
+}
+
+impl From<DnsRecordType> for String {
+    fn from(value: DnsRecordType) -> Self {
+        match value {
+            DnsRecordType::A => "A".to_string(),
+            DnsRecordType::AAAA => "AAAA".to_string(),
+            DnsRecordType::TXT => "TXT".to_string(),
+            DnsRecordType::NS => "NS".to_string(),
+            DnsRecordType::SRV => "SRV".to_string(),
+            DnsRecordType::Other => "Other".to_string(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DnsRecord {
-    pub kind: String,
+    pub kind: DnsRecordType,
     pub name: String,
     pub data: String,
+}
+
+impl DnsRecord {
+    fn kind(&self) -> DnsRecordType {
+        self.kind.clone()
+    }
+    pub fn name(&self) -> String {
+        self.name.to_string()
+    }
+    fn data(&self) -> String {
+        self.data.to_string()
+    }
 }
 
 #[derive(std::fmt::Debug, PartialEq)]
@@ -24,80 +72,28 @@ impl fmt::Display for DnsBackendError {
     }
 }
 
-pub struct DigitalOceanBackend {
-    client: DigitalOcean,
-    zone: String,
+pub trait DnsBackend {
+    fn zone(&self) -> String;
+    fn get_zone_records(&self) -> Result<Vec<DnsRecord>, DnsBackendError>;
+    fn create_record(&self, record: DnsRecord) -> Result<(), DnsBackendError>;
+    fn update_record(&self, record: &DnsRecord, new_data: &str) -> Result<(), DnsBackendError>;
 }
 
-impl DigitalOceanBackend {
-    pub fn new(api_key: String, zone: String) -> Result<Self, digitalocean::error::Error> {
-        match DigitalOcean::new(api_key) {
-            Ok(client) => Ok(Self { client, zone }),
-            Err(e) => Err(e),
-        }
-    }
-}
-
-impl DigitalOceanBackend {
-    pub fn get_zone(&self) -> Result<Vec<DomainRecord>, DnsBackendError> {
-        match Domain::get(&self.zone).records().execute(&self.client) {
-            Ok(results) => {
-                debug!(
-                    "Fetched records from digital ocean for domain {}: {:?}",
-                    &self.zone, results
-                );
-                Ok(results)
-            }
-            Err(e) => Err(DnsBackendError {
-                message: format!("Dns backend error: {:?}", e),
-            }),
-        }
-    }
-
-    pub fn create_record(&self, record: DnsRecord) -> Result<(), DnsBackendError> {
-        let result = Domain::get(&self.zone)
-            .records()
-            .create(record.kind, record.name, record.data)
-            .execute(&self.client);
-        match result {
-            Ok(_) => Ok(()),
-            Err(e) => Err(DnsBackendError {
-                message: format!("Failed to create DNS record: {:?}", e),
-            }),
-        }
-    }
-
-    pub fn update_record(
-        &self,
-        record: &DomainRecord,
-        new_data: &String,
-    ) -> Result<(), DnsBackendError> {
-        let result = Domain::get(&self.zone)
-            .records()
-            .update(*record.id())
-            .data(new_data)
-            .execute(&self.client);
-        match result {
-            Ok(_) => Ok(()),
-            Err(e) => Err(DnsBackendError {
-                message: format!("Failed to update DNS record: {:?}", e),
-            }),
-        }
-    }
-}
-
-pub fn update_records(
-    backend: DigitalOceanBackend,
+pub fn update_records<T>(
+    backend: T,
     desired_records: Vec<ParsedRecord>,
     system_interfaces: &SystemAddresses,
-) -> Result<(), DnsBackendError> {
-    let current_records = backend.get_zone()?;
+) -> Result<(), DnsBackendError>
+where
+    T: DnsBackend,
+{
+    let current_records = backend.get_zone_records()?;
     for desired_record in desired_records {
-        let zone_name = &backend.zone;
-        let mut matching_records: Vec<DomainRecord> = current_records
+        let zone_name = &backend.zone();
+        let mut matching_records: Vec<DnsRecord> = current_records
             .clone()
             .into_iter()
-            .filter(|x| x.name() == &desired_record.name && x.kind() == &desired_record.record_type)
+            .filter(|x| x.name() == desired_record.name && x.kind() == desired_record.record_type)
             .collect();
         let interface = find_matching_interface(&desired_record, system_interfaces)?;
         if matching_records.len() > 1 {
@@ -117,28 +113,28 @@ pub fn update_records(
             };
             backend.create_record(new_record)?;
             info!(
-                "Created new {} record: {}.{} = {}",
-                rec_kind, rec_name, &backend.zone, rec_data
+                "Created new {:?} record: {}.{} = {}",
+                rec_kind, rec_name, &zone_name, rec_data
             );
         } else if matching_records.len() == 1 {
             if let Some(record) = matching_records.pop() {
                 let current_ip = IpAddr::from(interface).to_string();
-                if record.data() != &current_ip.to_string() {
+                if record.data() != current_ip {
                     backend.update_record(&record, &current_ip)?;
                     info!(
-                        "Updated {} record {}.{}: old {} new {}",
+                        "Updated {:?} record {}.{}: old {} new {}",
                         record.kind(),
                         record.name(),
-                        &backend.zone,
+                        &zone_name,
                         record.data(),
                         current_ip
                     );
                 } else {
                     info!(
-                        "{} record {}.{} already up to date",
+                        "{:?} record {}.{} already up to date",
                         record.kind(),
                         record.name(),
-                        &backend.zone
+                        &zone_name
                     );
                 }
             }
@@ -153,8 +149,8 @@ pub fn find_matching_interface(
 ) -> Result<SystemAddress, DnsBackendError> {
     let v4_addresses = system_interfaces.v4_addresses.clone();
     let v6_addresses = system_interfaces.v6_addresses.clone();
-    match record.record_type.as_str() {
-        "A" => {
+    match record.record_type {
+        DnsRecordType::A => {
             let mut matched_interface: Vec<SystemV4Address> = v4_addresses
                 .into_iter()
                 .filter(|x| x.interface == record.interface)
@@ -169,7 +165,7 @@ pub fn find_matching_interface(
                 }),
             }
         }
-        "AAAA" => {
+        DnsRecordType::AAAA => {
             let mut matched_interface: Vec<SystemV6Address> = v6_addresses
                 .into_iter()
                 .filter(|x| x.interface == record.interface)
@@ -186,7 +182,7 @@ pub fn find_matching_interface(
         }
         _ => Err(DnsBackendError {
             message: format!(
-                "{} is not a valid record type, try \"A\" or \"AAAA\"",
+                "{:?} is not a valid record type, try \"A\" or \"AAAA\"",
                 record.record_type
             ),
         }),
@@ -203,7 +199,7 @@ mod tests {
     fn test_find_matching_interface_match_v4() {
         let record = ParsedRecord {
             name: "test_record".to_string(),
-            record_type: "A".to_string(),
+            record_type: DnsRecordType::A,
             interface: "eth0".to_string(),
         };
         let interface = SystemV4Address {
@@ -223,7 +219,7 @@ mod tests {
     fn test_find_matching_interface_match_v6() {
         let record = ParsedRecord {
             name: "test_record".to_string(),
-            record_type: "AAAA".to_string(),
+            record_type: DnsRecordType::AAAA,
             interface: "eth0".to_string(),
         };
         let interface = SystemV6Address {
@@ -242,7 +238,7 @@ mod tests {
     fn test_find_matching_interface_no_match() {
         let record = ParsedRecord {
             name: "test_record".to_string(),
-            record_type: "A".to_string(),
+            record_type: DnsRecordType::A,
             interface: "eth0".to_string(),
         };
         let interface = SystemV4Address {
