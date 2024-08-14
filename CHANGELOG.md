@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.3](https://github.com/graysonhead/dns-agent/compare/v0.2.2...v0.2.3) (2024-08-14)
+
+
+### Bug Fixes
+
+* Cloudflare Response Missing locked Attribute ([4dcbb95](https://github.com/graysonhead/dns-agent/commit/4dcbb95a74edb17e003b7ab226842ddb8c2ed035))
+
 ## [0.2.2](https://github.com/graysonhead/dns-agent/compare/v0.2.1...v0.2.2) (2024-08-14)
 
 
