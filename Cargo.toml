@@ -9,13 +9,18 @@ authors = ["Grayson Head <grayson@graysonhead.net>"]
 
 [dependencies]
 digitalocean = { version = "0.1.1" }
-clap = { version = "3.1.17", features = [ "derive" ] }
+clap = { version = "3.1.17", features = ["derive"] }
 serde_derive = { version = "1.0.137" }
 serde = { version = "1.0.137", features = ["derive"] }
 log = { version = "0.4" }
-simple_logger = { version = "2.1.0", default-features = false, features = ["colors"] }
+simple_logger = { version = "2.1.0", default-features = false, features = [
+    "colors",
+] }
 toml = { version = "0.5.9" }
 get_if_addrs = { version = "0.5.3" }
-reqwest = { version = "0.11.10", features = ["blocking"]}
+reqwest = { version = "0.11.10", features = ["blocking"] }
 default-net = "0.14.1"
-cloudflare = { version = "0.11.0", features = ["rustls-tls", "blocking"] }
+cloudflare = { git = "https://github.com/cloudflare/cloudflare-rs.git", features = [
+    "rustls-tls",
+    "blocking",
+] }
