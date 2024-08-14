@@ -138,7 +138,25 @@ impl DnsBackend for CloudFlareBackend {
         let records = self._get_zone_records_internal()?;
         let existing_record = records
             .iter()
-            .find(|x| x.name.split('.').next().unwrap() == record.name)
+            .find(|x| {
+                let mut record_type_match = false;
+                match x.content {
+                    DnsContent::A { content: _ } => {
+                        if record.kind == DnsRecordType::A {
+                            record_type_match = true
+                        }
+                    }
+                    DnsContent::AAAA { content: _ } => {
+                        if record.kind == DnsRecordType::AAAA {
+                            record_type_match = true
+                        }
+                    }
+                    _ => {
+                        error!("Unsupported record type specified")
+                    }
+                }
+                x.name.split('.').next().unwrap() == record.name && record_type_match
+            })
             .ok_or(DnsBackendError {
                 message: "Tried to update a nonexistant record".to_string(),
             })?;
