@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.2](https://github.com/graysonhead/dns-agent/compare/v0.2.1...v0.2.2) (2024-08-14)
+
+
+### Bug Fixes
+
+* Cloudflare Record Type Matching ([9b264f3](https://github.com/graysonhead/dns-agent/commit/9b264f32664e381e132f707cf6380b40b98d1503))
+
 ## [0.2.1](https://github.com/graysonhead/dns-agent/compare/v0.2.0...v0.2.1) (2024-08-14)
 
 
