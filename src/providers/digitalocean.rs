@@ -63,6 +63,8 @@ impl DnsBackend for DigitalOceanBackend {
 
     fn update_record(&self, record: &DnsRecord, new_data: &str) -> Result<(), DnsBackendError> {
         let current_records = self._get_records_internal()?;
+        let current_record_name = record.name.clone();
+        let new_value = new_data.clone();
         let existing_record = current_records
             .iter()
             .find(|x| x.name() == &record.name)
@@ -77,7 +79,10 @@ impl DnsBackend for DigitalOceanBackend {
         match result {
             Ok(_) => Ok(()),
             Err(e) => Err(DnsBackendError {
-                message: format!("Failed to update DNS record: {:?}", e),
+                message: format!(
+                    "Failed to update DNS record {current_record_name} with value {new_value}: {:?}",
+                    e
+                ),
             }),
         }
     }
