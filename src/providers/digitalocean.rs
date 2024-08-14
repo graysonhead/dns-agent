@@ -61,13 +61,17 @@ impl DnsBackend for DigitalOceanBackend {
         }
     }
 
+    #[allow(suspicious_double_ref_op)]
     fn update_record(&self, record: &DnsRecord, new_data: &str) -> Result<(), DnsBackendError> {
         let current_records = self._get_records_internal()?;
-        let current_record_name = record.name.clone();
-        let new_value = new_data.clone();
         let existing_record = current_records
             .iter()
-            .find(|x| x.name() == &record.name)
+            .find(|x| {
+                // Intentionally cloning the reference here, because closures are weird
+                let local_record = x.clone();
+                let conv = DnsRecord::from(local_record.clone());
+                conv.name() == record.name && conv.kind == record.kind
+            })
             .ok_or(DnsBackendError {
                 message: "Tried to update a nonexistant record".to_string(),
             })?;
@@ -80,7 +84,7 @@ impl DnsBackend for DigitalOceanBackend {
             Ok(_) => Ok(()),
             Err(e) => Err(DnsBackendError {
                 message: format!(
-                    "Failed to update DNS record {current_record_name} with value {new_value}: {:?}",
+                    "Failed to update DNS record {existing_record:?} with value {new_data}: {:?}",
                     e
                 ),
             }),
