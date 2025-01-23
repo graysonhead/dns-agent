@@ -4,13 +4,12 @@
 
 dns-agent is an agent that can be run by a systemd timer, cron, or another scheduling program at regular intervals to allow a system to update it's own IP address.
 
-In addition to allowing for Dynamic DNS for DHCP issued external IP addresses, it can also be used to make use of DNS in IPv6 environments that make use of SLAAC.
+In addition to allowing for Dynamic DNS for DHCP issued external IP addresses, it can also be used to more easily utilize DNS in IPv6 SLAAC networks (or in dynamic networks where you don't control the DHCP server).
 
 ## Backends
 
-Right now, only Digital Ocean is supported, but I'm planning on adding PowerDNS. Right now the DNS Provider Api is a bit of a mess but I'm planning on cleaning it up once I add a second provider. In the meantime, I'll happliy take a look at any pull requests if there is enough interest.
+Currently, Digital Ocean and Cloudflare are the only supported backends. New backends should be relatively easy to add by implementing the DnsBackend trait. Pull requests are welcomed.
 
-## Install
+## Examples
 
-
-
+See the `examples` directory for configuration examples.
