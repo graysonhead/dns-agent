@@ -1,12 +1,12 @@
-use cloudflare::endpoints::dns::{
+use cloudflare::endpoints::dns::dns::{
     CreateDnsRecord, CreateDnsRecordParams, DnsContent, DnsRecord, ListDnsRecords,
     ListDnsRecordsParams, UpdateDnsRecord, UpdateDnsRecordParams,
 };
 
 use cloudflare::framework::auth::Credentials;
+use cloudflare::framework::client::blocking_api::HttpApiClient;
+use cloudflare::framework::client::ClientConfig;
 use cloudflare::framework::Environment::Production;
-use cloudflare::framework::HttpApiClient;
-use cloudflare::framework::HttpApiClientConfig;
 use serde_derive::{Deserialize, Serialize};
 
 use crate::dns_providers::{self, DnsBackend, DnsBackendError, DnsRecordType};
@@ -49,8 +49,7 @@ impl From<CloudFlareBackendConfig> for CloudFlareBackend {
         let credentials = Credentials::UserAuthToken {
             token: value.api_token,
         };
-        let config = HttpApiClientConfig::default();
-        let client = HttpApiClient::new(credentials, config, Production).unwrap();
+        let client = HttpApiClient::new(credentials, ClientConfig::default(), Production).unwrap();
         CloudFlareBackend {
             zone_identifier: value.zone_identifier,
             client,
