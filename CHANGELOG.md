@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.5](https://github.com/graysonhead/dns-agent/compare/v0.2.4...v0.2.5) (2025-07-04)
+
+
+### Bug Fixes
+
+* Cloudflare Client Updated to fix deserialization issue ([93d5fe2](https://github.com/graysonhead/dns-agent/commit/93d5fe2fb857c2732a89825aa2a8aafc317c40d6))
+* Cloudflare Library Updated to fix deserialization issue ([e56901d](https://github.com/graysonhead/dns-agent/commit/e56901d3ac8057adfaf960889e4f7fe890d5a32a))
+
 ## [0.2.4](https://github.com/graysonhead/dns-agent/compare/v0.2.3...v0.2.4) (2025-01-23)
 
 
